@@ -1,66 +1,95 @@
-// Select elements
-const inputField = document.getElementById('item-input');
-const addButton = document.getElementById('add-btn');
-const shoppingList = document.getElementById('shopping-list');
-const clearButton = document.getElementById('clear-btn');
+// Initialize an array to store items
+const shoppingList = [];
 
-// Retrieve from local storage or initialize an empty array
-let items = JSON.parse(localStorage.getItem('shoppingList')) || [];
-
-// Function to save to local storage
-const saveToLocalStorage = () => {
-    localStorage.setItem('shoppingList', JSON.stringify(items));
-};
+// DOM Elements
+const itemInput = document.getElementById("item-input");
+const addButton = document.getElementById("add-button");
+const clearButton = document.getElementById("clear-button");
+const shoppingListContainer = document.getElementById("shopping-list");
 
 // Function to render the list
-const renderList = () => {
-    shoppingList.innerHTML = '';
-    items.forEach((item, index) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = item.text;
-        listItem.className = item.purchased ? 'purchased' : '';
-        listItem.addEventListener('click', () => togglePurchased(index));
-        listItem.addEventListener('dblclick', () => editItem(index));
-        shoppingList.appendChild(listItem);
+function renderList() {
+    
+    // Clear the current list
+    shoppingListContainer.innerHTML = "";
+
+    // Iterate through the shopping list array
+    shoppingList.forEach((item, index) => {
+        const listItem = document.createElement("li");
+
+        // Add purchased class if the item is purchased
+        listItem.className = item.purchased ? "purchased" : "";
+
+        // Create the item structure
+        listItem.innerHTML = `
+            <span>${item.name}</span>
+            <div>
+                <button class="purchase-btn">${item.purchased ? "Undo" : "Mark Purchased"}</button>
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            </div>
+        `;
+
+        // Add event listeners to buttons
+        const purchaseButton = listItem.querySelector(".purchase-btn");
+        const editButton = listItem.querySelector(".edit-btn");
+        const deleteButton = listItem.querySelector(".delete-btn");
+
+        // Mark as purchased
+        purchaseButton.addEventListener("click", () => togglePurchased(index));
+
+        // Edit item
+        editButton.addEventListener("click", () => editItem(index));
+
+        // Delete item
+        deleteButton.addEventListener("click", () => deleteItem(index));
+
+        shoppingListContainer.appendChild(listItem);
     });
-};
+}
 
-// Function to add a new item
-const addItem = () => {
-    const newItem = inputField.value.trim();
+// Add new item to the list
+addButton.addEventListener("click", () => {
+    const newItem = itemInput.value.trim();
+
     if (newItem) {
-        items.push({ text: newItem, purchased: false });
-        saveToLocalStorage();
-        renderList();
-        inputField.value = '';
+        // Add the item to the array
+        shoppingList.push({ name: newItem, purchased: false });
+        itemInput.value = ""; // Clear input
+        renderList(); // Update the list
+    } else {
+        alert("Please enter an item before adding.");
     }
-};
+});
 
-// Function to toggle purchased status
-const togglePurchased = (index) => {
-    items[index].purchased = !items[index].purchased;
-    saveToLocalStorage();
+// Mark an item as purchased
+function togglePurchased(index) {
+    shoppingList[index].purchased = !shoppingList[index].purchased;
     renderList();
-};
+}
 
-// Function to edit an item
-const editItem = (index) => {
-    const newText = prompt('Edit item:', items[index].text);
-    if (newText !== null) {
-        items[index].text = newText.trim() || items[index].text;
-        saveToLocalStorage();
+// Edit an item
+function editItem(index) {
+    const newName = prompt("Edit the item:", shoppingList[index].name);
+    if (newName) {
+        shoppingList[index].name = newName.trim();
         renderList();
     }
-};
+}
 
-// Function to clear the list
-const clearList = () => {
-    items = [];
-    saveToLocalStorage();
+// Delete an item
+function deleteItem(index) {
+    shoppingList.splice(index, 1);
     renderList();
-};
+}
 
-// Event listeners
-addButton.addEventListener('click', addItem);
-clearButton.addEventListener('click', clearList);
-window.addEventListener('DOMContentLoaded', renderList);
+// Clear the list
+clearButton.addEventListener("click", () => {
+    if (confirm("Are you sure you want to clear the list?")) {
+        shoppingList.length = 0; // Clear array
+        renderList();
+    }
+});
+
+// Initial render
+renderList();
