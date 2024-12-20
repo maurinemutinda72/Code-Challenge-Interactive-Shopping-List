@@ -1,95 +1,166 @@
-// Initialize an array to store items
-const shoppingList = [];
-
 // DOM Elements
 const itemInput = document.getElementById("item-input");
+const priceInput = document.getElementById("item-price");
 const addButton = document.getElementById("add-button");
 const clearButton = document.getElementById("clear-button");
 const shoppingListContainer = document.getElementById("shopping-list");
 
-// Function to render the list
-function renderList() {
-    
-    // Clear the current list
-    shoppingListContainer.innerHTML = "";
+// Base URL for the JSON server
+const baseUrl = "http://localhost:3000/shoppingList";
 
-    // Iterate through the shopping list array
-    shoppingList.forEach((item, index) => {
-        const listItem = document.createElement("li");
+// Function to fetch and render the list from db.json
+async function fetchAndRenderList() {
+    try {
+        const response = await fetch(baseUrl);
+        const shoppingList = await response.json();
 
-        // Add purchased class if the item is purchased
-        listItem.className = item.purchased ? "purchased" : "";
+        // Clear current list in DOM
+        shoppingListContainer.innerHTML = "";
 
-        // Create the item structure
-        listItem.innerHTML = `
-            <span>${item.name}</span>
-            <div>
-                <button class="purchase-btn">${item.purchased ? "Undo" : "Mark Purchased"}</button>
-                <button class="edit-btn">Edit</button>
-                <button class="delete-btn">Delete</button>
-            </div>
-        `;
+        // Render each item
+        shoppingList.forEach((item) => {
+            const listItem = document.createElement("li");
 
-        // Add event listeners to buttons
-        const purchaseButton = listItem.querySelector(".purchase-btn");
-        const editButton = listItem.querySelector(".edit-btn");
-        const deleteButton = listItem.querySelector(".delete-btn");
+            // Create item structure
+            listItem.innerHTML = `
+                <div>
+                    <span class="item-name">${item.name}</span> - 
+                    <span class="item-price">$${item.price}</span>
+                </div>
+                <div>
+                    <button class="purchase-btn">${item.purchased ? "Undo" : "Mark Purchased"}</button>
+                    <button class="edit-btn">Edit</button>
+                    <button class="delete-btn">Delete</button>
+                </div>
+            `;
 
-        // Mark as purchased
-        purchaseButton.addEventListener("click", () => togglePurchased(index));
+            // Add event listeners
+            const purchaseButton = listItem.querySelector(".purchase-btn");
+            const editButton = listItem.querySelector(".edit-btn");
+            const deleteButton = listItem.querySelector(".delete-btn");
 
-        // Edit item
-        editButton.addEventListener("click", () => editItem(index));
+            // Mark as purchased
+            purchaseButton.addEventListener("click", () => togglePurchased(item.id, item.purchased));
 
-        // Delete item
-        deleteButton.addEventListener("click", () => deleteItem(index));
+            // Edit item
+            editButton.addEventListener("click", () => editItem(item.id, item.name, item.price));
 
-        shoppingListContainer.appendChild(listItem);
-    });
+            // Delete item
+            deleteButton.addEventListener("click", () => deleteItem(item.id));
+
+            // Add purchased style
+            if (item.purchased) {
+                listItem.style.textDecoration = "line-through";
+            }
+
+            // Append item to DOM
+            shoppingListContainer.appendChild(listItem);
+        });
+    } catch (error) {
+        console.error("Error fetching the shopping list:", error);
+    }
 }
 
-// Add new item to the list
-addButton.addEventListener("click", () => {
-    const newItem = itemInput.value.trim();
+// Function to add a new item
+async function addItem() {
+    const name = itemInput.value.trim();
+    const price = parseFloat(priceInput.value);
 
-    if (newItem) {
-        // Add the item to the array
-        shoppingList.push({ name: newItem, purchased: false });
-        itemInput.value = ""; // Clear input
-        renderList(); // Update the list
+    // Validate inputs
+    if (name && !isNaN(price)) {
+        const newItem = { name, price, purchased: false };
+
+        try {
+            await fetch(baseUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newItem),
+            });
+
+            // Clear inputs and refresh list
+            itemInput.value = "";
+            priceInput.value = "";
+            fetchAndRenderList();
+        } catch (error) {
+            console.error("Error adding a new item:", error);
+        }
     } else {
-        alert("Please enter an item before adding.");
-    }
-});
-
-// Mark an item as purchased
-function togglePurchased(index) {
-    shoppingList[index].purchased = !shoppingList[index].purchased;
-    renderList();
-}
-
-// Edit an item
-function editItem(index) {
-    const newName = prompt("Edit the item:", shoppingList[index].name);
-    if (newName) {
-        shoppingList[index].name = newName.trim();
-        renderList();
+        alert("Please enter a valid name and price.");
     }
 }
 
-// Delete an item
-function deleteItem(index) {
-    shoppingList.splice(index, 1);
-    renderList();
+// Function to toggle purchased status
+async function togglePurchased(id, currentStatus) {
+    try {
+        await fetch(`${baseUrl}/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ purchased: !currentStatus }),
+        });
+
+        fetchAndRenderList();
+    } catch (error) {
+        console.error("Error updating purchased status:", error);
+    }
 }
 
-// Clear the list
-clearButton.addEventListener("click", () => {
-    if (confirm("Are you sure you want to clear the list?")) {
-        shoppingList.length = 0; // Clear array
-        renderList();
+// Function to edit an item
+async function editItem(id, currentName, currentPrice) {
+    const newName = prompt("Edit item name:", currentName);
+    const newPrice = prompt("Edit item price:", currentPrice);
+
+    // Validate inputs
+    if (newName && !isNaN(parseFloat(newPrice))) {
+        try {
+            await fetch(`${baseUrl}/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName.trim(), price: parseFloat(newPrice) }),
+            });
+
+            fetchAndRenderList();
+        } catch (error) {
+            console.error("Error editing the item:", error);
+        }
+    } else {
+        alert("Please enter valid inputs for name and price.");
     }
-});
+}
+
+// Function to delete an item
+async function deleteItem(id) {
+    try {
+        await fetch(`${baseUrl}/${id}`, { method: "DELETE" });
+        fetchAndRenderList();
+    } catch (error) {
+        console.error("Error deleting the item:", error);
+    }
+}
+
+// Function to clear the entire list
+async function clearList() {
+    if (confirm("Are you sure you want to clear the entire list?")) {
+        try {
+            const response = await fetch(baseUrl);
+            const shoppingList = await response.json();
+
+            // Delete each item
+            await Promise.all(
+                shoppingList.map((item) =>
+                    fetch(`${baseUrl}/${item.id}`, { method: "DELETE" })
+                )
+            );
+
+            fetchAndRenderList();
+        } catch (error) {
+            console.error("Error clearing the shopping list:", error);
+        }
+    }
+}
+
+// Add event listeners
+addButton.addEventListener("click", addItem);
+clearButton.addEventListener("click", clearList);
 
 // Initial render
-renderList();
+fetchAndRenderList();

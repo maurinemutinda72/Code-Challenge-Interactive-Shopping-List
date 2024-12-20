@@ -1,0 +1,34 @@
+{
+  "shoppingList": [
+    {
+      "id": "1",
+      "name": "Cabbage",
+      "price": 10,
+      "purchased": false
+    },
+    {
+      "id": "2",
+      "name": "Zucchini",
+      "price": 40,
+      "purchased": false
+    },
+    {
+      "id": "3",
+      "name": "Maize flour",
+      "price": 12,
+      "purchased": false
+    },
+    {
+      "id": "4",
+      "name": "Eggs",
+      "price": 20,
+      "purchased": false
+    },
+    {
+      "id": "5",
+      "name": "Rice",
+      "price": 29,
+      "purchased": true
+    }
+  ]
+}
